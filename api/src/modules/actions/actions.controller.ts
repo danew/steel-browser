@@ -36,7 +36,7 @@ export async function getPage(
     return { 
       page, 
       times,
-      close: context.close,
+      close: async () => await context.close(),
     };
   }
   const page = await browserService.getPrimaryPage();
@@ -44,7 +44,7 @@ export async function getPage(
   return { 
     page, 
     times,
-    close: browserService.refreshPrimaryPage,
+    close: async () => await browserService.refreshPrimaryPage(),
   };
 }
 
