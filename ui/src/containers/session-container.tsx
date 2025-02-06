@@ -69,7 +69,7 @@ export function SessionContainer() {
           </div>
           {showConsole && (
             <div className="flex flex-col items-center overflow-hidden w-1/3 justify-center h-full text-primary gap-2">
-              <div className="flex flex-col items-center overflow-hidden justify-center w-full h-full border border-[var(--gray-6)] rounded-md overflow-hidden">
+              <div className="flex flex-col items-center justify-center w-full h-full border border-[var(--gray-6)] rounded-md overflow-hidden">
                 {session && <SessionConsole id={id!} />}
               </div>
             </div>
