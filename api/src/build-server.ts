@@ -9,16 +9,13 @@ import otelPlugin from "./plugins/otel";
 import requestLogger from "./plugins/request-logger";
 import openAPIPlugin from "./plugins/schemas";
 import seleniumPlugin from "./plugins/selenium";
-import { actionsRoutes, cdpRoutes, seleniumRoutes, sessionsRoutes } from "./routes";
+import { actionsRoutes, cdpRoutes, evaluateRoutes, seleniumRoutes, sessionsRoutes } from "./routes";
 
 export default async function buildFastifyServer(options?: FastifyServerOptions) {
   const server = fastify(options);
 
   // Plugins
-  await server.register(otelPlugin, {
-    serverName: 'fastify-ts-app',
-    otlpUrl: 'http://localhost:4318/v1/traces'
-  });
+  await server.register(otelPlugin, { enabled: false });
   server.register(requestLogger);
   server.register(fastifySensible);
   server.register(fastifyCors, { origin: true });
@@ -34,6 +31,7 @@ export default async function buildFastifyServer(options?: FastifyServerOptions)
   server.register(sessionsRoutes, { prefix: "/v1" });
   server.register(cdpRoutes, { prefix: "/v1" });
   server.register(seleniumRoutes);
+  server.register(evaluateRoutes, { prefix: "/v1" });
 
   return server;
 }
