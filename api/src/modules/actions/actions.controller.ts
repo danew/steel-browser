@@ -1,38 +1,60 @@
-import { CDPService } from "../../services/cdp.service";
 import { FastifyReply } from "fastify";
-import { getErrors } from "../../utils/errors";
-import { PDFRequest, ScrapeRequest, ScreenshotRequest } from "./actions.schema";
-import { cleanHtml, getMarkdown, getReadabilityContent } from "../../utils/scrape";
+import { Page } from "puppeteer-core";
+import { CDPService } from "../../services/cdp.service";
+import { SessionService } from "../../services/session.service";
 import { ScrapeFormat } from "../../types";
-import { BrowserContext, Page } from "puppeteer-core";
+import { getErrors } from "../../utils/errors";
 import { updateLog } from "../../utils/logging";
 import { getProxyServer } from "../../utils/proxy";
-import { SessionService } from "../../services/session.service";
+import { cleanHtml, getMarkdown, getReadabilityContent } from "../../utils/scrape";
+import { PDFRequest, ScrapeRequest, ScreenshotRequest } from "./actions.schema";
+
+interface GetPageReturn {
+  page: Page;
+  close(): Promise<void>;
+  times: Record<string, number>;
+}
+
+export async function getPage(
+  times: Record<string, number>,
+  startTime: number,
+  sessionService: SessionService,
+  browserService: CDPService,
+  proxyUrl?: string | null,
+): Promise<GetPageReturn> {
+  const browserOperation = !browserService.isRunning() && browserService.launch();
+
+  const proxy = await getProxyServer(proxyUrl, sessionService);
+  times.proxyTime = Date.now() - startTime;
+
+  await browserOperation;
+
+  if (proxy) {
+    const context = await browserService.createBrowserContext(proxy.url);
+    const page = await context.newPage();
+    times.proxyPageTime = Date.now() - startTime - times.proxyTime;
+    return { 
+      page, 
+      times,
+      close: async () => await context.close(),
+    };
+  }
+  const page = await browserService.getPrimaryPage();
+  times.pageTime = Date.now() - startTime - times.proxyTime;
+  return { 
+    page, 
+    times,
+    close: async () => await browserService.refreshPrimaryPage(),
+  };
+}
 
 export const handleScrape = async (sessionService: SessionService, browserService: CDPService, request: ScrapeRequest, reply: FastifyReply) => {
   const startTime = Date.now();
   let times: Record<string, number> = {};
   const { url, format, screenshot, pdf, proxyUrl, logUrl, delay } = request.body;
   try {
-    const proxy = await getProxyServer(proxyUrl, sessionService);
+    const { page, close } = await getPage(times, startTime, sessionService, browserService, proxyUrl);
 
-    times.proxyTime = Date.now() - startTime;
-
-    let page: Page;
-    let context: BrowserContext;
-
-    if (!browserService.isRunning()) {
-      await browserService.launch();
-    }
-
-    if (proxy) {
-      context = await browserService.createBrowserContext(proxy.url);
-      page = await context.newPage();
-      times.proxyPageTime = Date.now() - startTime - times.proxyTime;
-    } else {
-      page = await browserService.getPrimaryPage();
-      times.pageTime = Date.now() - startTime - times.proxyTime;
-    }
     await page.goto(url, { timeout: 30000, waitUntil: "domcontentloaded" });
     if (delay) {
       await new Promise((resolve) => setTimeout(resolve, delay));
@@ -109,11 +131,7 @@ export const handleScrape = async (sessionService: SessionService, browserServic
 
     times.totalInstanceTime = Date.now() - startTime;
 
-    if (proxy) {
-      await page.browserContext().close();
-    } else {
-      await browserService.refreshPrimaryPage();
-    }
+    await close();
 
     if (logUrl) {
       await updateLog(logUrl, { times });
@@ -137,21 +155,7 @@ export const handleScreenshot = async (sessionService: SessionService, browserSe
     await browserService.launch();
   }
   try {
-    const proxy = await getProxyServer(proxyUrl, sessionService);
-
-    times.proxyTime = Date.now() - startTime;
-
-    let page: Page;
-    let context: BrowserContext;
-
-    if (proxy) {
-      context = await browserService.createBrowserContext(proxy.url);
-      page = await context.newPage();
-      times.proxyPageTime = Date.now() - startTime - times.proxyTime;
-    } else {
-      page = await browserService.getPrimaryPage();
-    }
-    times.pageTime = Date.now() - startTime;
+    const { page, close } = await getPage(times, startTime, sessionService, browserService, proxyUrl);
     await page.goto(url, { timeout: 30000, waitUntil: "domcontentloaded" });
     times.pageLoadTime = Date.now() - times.pageTime - times.proxyTime - startTime;
 
@@ -161,11 +165,7 @@ export const handleScreenshot = async (sessionService: SessionService, browserSe
 
     const screenshot = await page.screenshot({ fullPage, type: "jpeg", quality: 100 });
     times.screenshotTime = Date.now() - times.pageLoadTime - times.pageTime - times.proxyTime - startTime;
-    if (proxy) {
-      await page.browserContext().close();
-    } else {
-      await browserService.refreshPrimaryPage();
-    }
+    await close();
 
     if (logUrl) {
       await updateLog(logUrl, { times });
@@ -186,26 +186,8 @@ export const handlePDF = async (sessionService: SessionService, browserService: 
   let times: Record<string, number> = {};
   const { url, logUrl, proxyUrl, delay } = request.body;
 
-  if (!browserService.isRunning()) {
-    await browserService.launch();
-  }
-
   try {
-    const proxy = await getProxyServer(proxyUrl, sessionService);
-
-    times.proxyTime = Date.now() - startTime;
-
-    let page: Page;
-    let context: BrowserContext;
-
-    if (proxy) {
-      context = await browserService.createBrowserContext(proxy.url);
-      page = await context.newPage();
-      times.proxyPageTime = Date.now() - startTime - times.proxyTime;
-    } else {
-      page = await browserService.getPrimaryPage();
-    }
-    times.pageTime = Date.now() - startTime;
+    const { page, close } = await getPage(times, startTime, sessionService, browserService, proxyUrl);
     await page.goto(url, { timeout: 30000, waitUntil: "domcontentloaded" });
     times.pageLoadTime = Date.now() - times.pageTime - times.proxyTime - startTime;
 
@@ -215,11 +197,7 @@ export const handlePDF = async (sessionService: SessionService, browserService: 
 
     const pdf = await page.pdf();
     times.pdfTime = Date.now() - times.pageLoadTime - times.pageTime - times.proxyTime - startTime;
-    if (proxy) {
-      await page.browserContext().close();
-    } else {
-      await browserService.refreshPrimaryPage();
-    }
+    await close();
     if (logUrl) {
       await updateLog(logUrl, { times });
     }
