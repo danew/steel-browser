@@ -20,17 +20,17 @@ export default async function buildFastifyServer(options?: FastifyServerOptions)
   server.register(fastifySensible);
   server.register(fastifyCors, { origin: true });
   server.register(openAPIPlugin);
-  // server.register(browserInstancePlugin);
-  // server.register(seleniumPlugin);
-  // server.register(browserWebSocket);
-  // server.register(customBodyParser);
-  // server.register(browserSessionPlugin);
+  server.register(browserInstancePlugin);
+  server.register(seleniumPlugin);
+  server.register(browserWebSocket);
+  server.register(customBodyParser);
+  server.register(browserSessionPlugin);
 
   // Routes
-  // server.register(actionsRoutes, { prefix: "/v1" });
-  // server.register(sessionsRoutes, { prefix: "/v1" });
-  // server.register(cdpRoutes, { prefix: "/v1" });
-  // server.register(seleniumRoutes);
+  server.register(actionsRoutes, { prefix: "/v1" });
+  server.register(sessionsRoutes, { prefix: "/v1" });
+  server.register(cdpRoutes, { prefix: "/v1" });
+  server.register(seleniumRoutes);
 
   
   // UI
