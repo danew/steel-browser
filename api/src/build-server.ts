@@ -1,6 +1,7 @@
 import fastify, { FastifyServerOptions } from "fastify";
 import fastifySensible from "@fastify/sensible";
 import fastifyCors from "@fastify/cors";
+import fastifyVite from '@fastify/vite'
 import openAPIPlugin from "./plugins/schemas";
 import requestLogger from "./plugins/request-logger";
 import browserInstancePlugin from "./plugins/browser";
@@ -9,8 +10,9 @@ import browserWebSocket from "./plugins/browser-socket";
 import seleniumPlugin from "./plugins/selenium";
 import customBodyParser from "./plugins/custom-body-parser";
 import { sessionsRoutes, seleniumRoutes, actionsRoutes, cdpRoutes } from "./routes";
+import path from "node:path";
 
-export default function buildFastifyServer(options?: FastifyServerOptions) {
+export default async function buildFastifyServer(options?: FastifyServerOptions) {
   const server = fastify(options);
 
   // Plugins
@@ -18,17 +20,26 @@ export default function buildFastifyServer(options?: FastifyServerOptions) {
   server.register(fastifySensible);
   server.register(fastifyCors, { origin: true });
   server.register(openAPIPlugin);
-  server.register(browserInstancePlugin);
-  server.register(seleniumPlugin);
-  server.register(browserWebSocket);
-  server.register(customBodyParser);
-  server.register(browserSessionPlugin);
+  // server.register(browserInstancePlugin);
+  // server.register(seleniumPlugin);
+  // server.register(browserWebSocket);
+  // server.register(customBodyParser);
+  // server.register(browserSessionPlugin);
 
   // Routes
-  server.register(actionsRoutes, { prefix: "/v1" });
-  server.register(sessionsRoutes, { prefix: "/v1" });
-  server.register(cdpRoutes, { prefix: "/v1" });
-  server.register(seleniumRoutes);
+  // server.register(actionsRoutes, { prefix: "/v1" });
+  // server.register(sessionsRoutes, { prefix: "/v1" });
+  // server.register(cdpRoutes, { prefix: "/v1" });
+  // server.register(seleniumRoutes);
+
+  
+  // UI
+  const uiPath = path.join(process.cwd(), "../ui");
+  await server.register(fastifyVite, {
+    root: uiPath,
+    dev: true, // not sure if there's a point in not using dev
+    spa: true
+  })
 
   return server;
 }
