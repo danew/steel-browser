@@ -1,9 +1,9 @@
 import fp from "fastify-plugin";
 import { type FastifyInstance, type FastifyPluginAsync } from "fastify";
-import WebSocket from "ws";
+import { WebSocketServer } from "ws";
 import { EmitEvent } from "../types/enums";
 
-const wss = new WebSocket.Server({ noServer: true });
+const wss = new WebSocketServer({ noServer: true });
 
 const browserWebSocket: FastifyPluginAsync = async (fastify: FastifyInstance, options: any) => {
   if (!fastify.cdpService.isRunning()) {
