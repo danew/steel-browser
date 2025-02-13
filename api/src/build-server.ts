@@ -1,14 +1,16 @@
-import fastifyCors from "@fastify/cors";
-import fastifySensible from "@fastify/sensible";
 import fastify, { FastifyServerOptions } from "fastify";
+import fastifySensible from "@fastify/sensible";
+import fastifyCors from "@fastify/cors";
+import fastifyVite from '@fastify/vite'
+import openAPIPlugin from "./plugins/schemas";
+import requestLogger from "./plugins/request-logger";
 import browserInstancePlugin from "./plugins/browser";
 import browserSessionPlugin from "./plugins/browser-session";
 import browserWebSocket from "./plugins/browser-socket";
-import customBodyParser from "./plugins/custom-body-parser";
-import requestLogger from "./plugins/request-logger";
-import openAPIPlugin from "./plugins/schemas";
 import seleniumPlugin from "./plugins/selenium";
-import { actionsRoutes, cdpRoutes, seleniumRoutes, sessionsRoutes } from "./routes";
+import customBodyParser from "./plugins/custom-body-parser";
+import { sessionsRoutes, seleniumRoutes, actionsRoutes, cdpRoutes } from "./routes";
+import path from "node:path";
 
 export default async function buildFastifyServer(options?: FastifyServerOptions) {
   const server = fastify(options);
@@ -29,6 +31,18 @@ export default async function buildFastifyServer(options?: FastifyServerOptions)
   server.register(sessionsRoutes, { prefix: "/v1" });
   server.register(cdpRoutes, { prefix: "/v1" });
   server.register(seleniumRoutes);
+
+  
+  // UI
+  // await server.register(fastifyVite, {
+  //   root: path.join(process.cwd()),
+  //   dev: true,
+  //   spa: true,
+  // })
+
+  // server.get('/', (req, reply) => {
+  //   return reply.html();
+  // });
 
   return server;
 }

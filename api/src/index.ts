@@ -9,10 +9,12 @@ export const server = buildFastifyServer({
   disableRequestLogging: false,
   trustProxy: true,
   bodyLimit: 100000000,
-}).then(async server => server.listen({ port: PORT, host: HOST }, (err) => {
+}).then(async server => {
+  // await server.vite.ready();
+  return server.listen({ port: PORT, host: HOST }, (err) => {
     if (err) {
       console.error(err);
       process.exit(1);
     }
   })
-);
+});
